@@ -34,3 +34,6 @@ goto-level = 1
 14 = 0xDD0D0D
 15 = 0xED0D0D
 16 = 0x000000
+
+[files]
+thing = { path = "foo", palette = "custom" }

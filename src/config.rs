@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 use serde::Deserialize;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::{fmt::Write as _, str::FromStr as _};
 
 #[derive(Deserialize, Debug)]
@@ -103,6 +104,9 @@ pub struct Config {
 
     /// Custom palettes.
     pub palettes: Option<BTreeMap<String, BTreeMap<u8, u32>>>,
+
+    /// Images and such
+    pub files: Option<BTreeMap<String, File>>,
 }
 
 pub fn load_config() -> Result<Config, TokenStream> {
@@ -138,6 +142,50 @@ pub fn write_palettes(palettes: BTreeMap<String, BTreeMap<u8, u32>>, s: &mut Str
             .unwrap();
         }
         writeln!(s, "}}").unwrap();
+    }
+    s.push('}');
+}
+
+#[derive(Deserialize, Debug)]
+pub struct File {
+    path: PathBuf,
+}
+
+pub fn write_files(files: BTreeMap<String, File>, s: &mut String) {
+    if files.is_empty() {
+        return;
+    }
+    writeln!(s, "mod files {{").unwrap();
+    writeln!(
+        s,
+        "use firefly_rust::{{load_file_buf, FileBuf, FileRef, ImageRef, FontRef}};"
+    )
+    .unwrap();
+    for (name, file) in files {
+        let (kind, convert) = match file.path.extension().and_then(|e| e.to_str()) {
+            Some("png") => ("ImageRef", ".into_image()"),
+            Some("fff") => ("FontRef", ".into_font()"),
+            _ => ("FileRef", ""),
+        };
+
+        writeln!(s, "pub fn init_{name}() {{").unwrap();
+        writeln!(s, "let file = load_file_buf(\"{name}\").unwrap();").unwrap();
+        writeln!(s, "unsafe {{").unwrap();
+        writeln!(
+            s,
+            "{name} = FileRef::from_bytes(<&[u8]>::from(&*{name}_buf.insert(file))){convert};"
+        )
+        .unwrap();
+        writeln!(s, "}}").unwrap();
+        writeln!(s, "}}").unwrap();
+
+        writeln!(s, "static mut {name}_buf: Option<FileBuf> = None;").unwrap();
+
+        writeln!(
+            s,
+            "pub static mut {name}: {kind}<'static> = unsafe {{ core::mem::transmute(&[] as &[u8]) }};"
+        )
+        .unwrap();
     }
     s.push('}');
 }

@@ -16,7 +16,7 @@ pub fn level_1(peer: Peer, score: i16) -> i16 { add_score(peer, Board(1), score)
 pub fn level_2(peer: Peer, score: i16) -> i16 { add_score(peer, Board(2), score) }
 pub fn speedrun(peer: Peer, score: i16) -> i16 { add_score(peer, Board(3), score) }
 }mod palettes {
-use firefly_rust::{set_color, Color};
+use firefly_rust::{set_color, Color, RGB};
 pub fn custom() {
 set_color(Color::new(1), RGB::new(13, 13, 13));
 set_color(Color::new(2), RGB::new(153, 153, 153));
@@ -35,4 +35,14 @@ set_color(Color::new(14), RGB::new(13, 13, 221));
 set_color(Color::new(15), RGB::new(13, 13, 237));
 set_color(Color::new(16), RGB::new(0, 0, 0));
 }
+}mod files {
+use firefly_rust::{load_file_buf, FileBuf, FileRef, ImageRef, FontRef};
+pub fn init_thing() {
+let file = load_file_buf("thing").unwrap();
+unsafe {
+thing = FileRef::from_bytes(<&[u8]>::from(&*thing_buf.insert(file)));
+}
+}
+static mut thing_buf: Option<FileBuf> = None;
+pub static mut thing: FileRef<'static> = unsafe { core::mem::transmute(&[] as &[u8]) };
 }
